@@ -1,14 +1,13 @@
 package org.hexworks.zirconx.api.tiled
 
-import com.fasterxml.jackson.module.kotlin.readValue
 import org.hexworks.cobalt.core.api.UUID
 import org.hexworks.zircon.api.data.GraphicalTile
 import org.hexworks.zircon.api.data.Position
 import org.hexworks.zircon.api.data.Tile
 import org.hexworks.zircon.api.resource.TilesetResource
 import org.hexworks.zircon.api.tileset.Tileset
+import org.hexworks.zirconx.api.tiled.ext.TiledTileSet
 import org.hexworks.zirconx.api.tiled.ext.TiledTilesetFile
-import org.hexworks.zirconx.api.xml
 import java.awt.Graphics2D
 import java.io.File
 
@@ -22,16 +21,21 @@ class TiledMapTileset(private val tilesetResource: TilesetResource) : Tileset<Gr
     init {
         tilesetResource as TiledTilesetResource
         tilesets = tilesetResource.tiledMapData.tilesets
-            .map {
+            .map { tiledTileSet: TiledTileSet ->
                 val tiledTilesetFile =
-                    xml.readValue<TiledTilesetFile>(File(tilesetResource.path).resolveSibling(it.source))
-                val range = it.firstgid until (it.firstgid + tiledTilesetFile.tilecount)
-                range to Java2DTiledTileset.from(tiledTilesetFile, it.firstgid, File(tilesetResource.path))
+                    deserializeJson(File(tilesetResource.path).resolveSibling(tiledTileSet.source))
+                        .let { TiledTilesetFile.fromMap(it) }
+                val range = tiledTileSet.firstGid until (tiledTileSet.firstGid + tiledTilesetFile.tilecount)
+                range to Java2DTiledTileset.from(tiledTilesetFile, tiledTileSet.firstGid, File(tilesetResource.path))
             }
     }
 
     override fun drawTile(tile: Tile, surface: Graphics2D, position: Position) {
         require(tile is GraphicalTile) { "Tile was unexpected type: $tile" }
+        if (tile.name == "0") {
+            // 0 is a special case meaning there's actually no tile there
+            return
+        }
         val tileId = tile.name.toInt()
         for (idx in tilesets.indices) {
             val (range, tileset) = tilesets[idx]
@@ -40,5 +44,6 @@ class TiledMapTileset(private val tilesetResource: TilesetResource) : Tileset<Gr
                 return
             }
         }
+        error("Unable to map tile $tile to a tileset")
     }
 }

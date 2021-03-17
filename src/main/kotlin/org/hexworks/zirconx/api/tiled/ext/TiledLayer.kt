@@ -1,30 +1,41 @@
 package org.hexworks.zirconx.api.tiled.ext
 
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.annotation.JsonSubTypes
-import com.fasterxml.jackson.annotation.JsonTypeInfo
 import org.hexworks.zircon.api.builder.data.TileBuilder
 import org.hexworks.zircon.api.builder.graphics.LayerBuilder
 import org.hexworks.zircon.api.data.Position
 import org.hexworks.zircon.api.data.Size
 import org.hexworks.zircon.api.graphics.Layer
 import org.hexworks.zirconx.api.tiled.TiledTilesetResource
+import org.hexworks.zirconx.api.tiled.numberToDouble
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes(
-    JsonSubTypes.Type(TiledObjectLayer::class, name = "objectgroup"),
-    JsonSubTypes.Type(TiledTileLayer::class, name = "tilelayer")
-)
-sealed class TiledLayer
+sealed class TiledLayer {
+    internal companion object {
+        fun fromMap(map: Map<String, Any>): TiledLayer =
+            when (val type = map["type"]) {
+                "tilelayer" -> TiledTileLayer.fromMap(map)
+                "objectgroup" -> TiledObjectLayer.fromMap(map)
+                else -> TODO("layer type $type is not yet supported")
+            }
+    }
+}
 
 class TiledObjectLayer(
-    @JsonProperty("draworder") val drawOrder: String,
+    val drawOrder: String,
     val name: String,
     val objects: List<TiledObject>
-) : TiledLayer()
+) : TiledLayer() {
+    internal companion object {
+        @Suppress("UNCHECKED_CAST")
+        fun fromMap(map: Map<String, Any>) = TiledObjectLayer(
+            map["draworder"] as String,
+            map["name"] as String,
+            (map["objects"] as List<Map<String, Any>>).map { TiledObject.fromMap(it) }
+        )
+    }
+}
 
 class TiledTileLayer(
-    val data: IntArray,
+    val data: List<Int>,
     val width: Int,
     val height: Int,
     val x: Int,
@@ -50,5 +61,21 @@ class TiledTileLayer(
             }
         }
         return layer
+    }
+
+    internal companion object {
+        @Suppress("UNCHECKED_CAST")
+        fun fromMap(map: Map<String, Any>): TiledTileLayer {
+            return TiledTileLayer(
+                map["data"] as List<Int>,
+                map["width"] as Int,
+                map["height"] as Int,
+                map["x"] as Int,
+                map["y"] as Int,
+                map["id"] as Int,
+                map["opacity"]?.numberToDouble()!!,
+                map["visible"] as Boolean,
+            )
+        }
     }
 }

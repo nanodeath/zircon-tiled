@@ -28,8 +28,8 @@ You'll need [this fork](https://github.com/nanodeath/zircon/tree/tiled) of Zirco
 
 ## Other TODOs
 
-* [ ] Switch over to kotlinx.serialization. This depends on being able to switch all of Tiled's outputs to JSON, which
-I _think_ we can do.
+* [x] ~~Switch over to kotlinx.serialization. This depends on being able to switch all of Tiled's outputs to JSON, which
+I _think_ we can do.~~ Switched over to naive Jackson object deserialization, which should be easy to replicate in JS implementations.
 * [x] Support object layers. See #1.
 * [ ] Support tile collision data.
 * [ ] Implement the Right Way to handle asset loading instead of just loading files.

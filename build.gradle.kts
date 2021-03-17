@@ -5,9 +5,10 @@ val slf4j_version: String by project
 val junit_version: String by project
 val mockito_version: String by project
 val assertj_version: String by project
+val jackson_version: String by project
 
 plugins {
-    kotlin("jvm") version "1.4.30"
+    kotlin("jvm") version "1.4.31"
     id("com.github.johnrengelman.shadow") version "5.2.0"
 }
 
@@ -29,10 +30,8 @@ dependencies {
     implementation("org.hexworks.zircon:zircon.core-jvm:$zircon_version")
     implementation("org.hexworks.zircon:zircon.jvm.swing:$zircon_version")
 
-    val jacksonVersion = "2.12.2"
-    implementation("com.fasterxml.jackson.core:jackson-core:$jacksonVersion")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$jacksonVersion")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
+    implementation("com.fasterxml.jackson.core:jackson-core:$jackson_version")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_version")
 
     testImplementation("junit:junit:$junit_version")
     testImplementation("org.mockito:mockito-all:$mockito_version")
