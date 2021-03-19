@@ -1,6 +1,7 @@
 package org.hexworks.zirconx.api.tiled
 
 import org.hexworks.zircon.api.data.GraphicalTile
+import org.hexworks.zircon.api.data.Position
 import org.hexworks.zircon.api.data.Tile
 import org.hexworks.zircon.api.graphics.Layer
 import org.hexworks.zircon.internal.resource.TilesetSourceType
@@ -18,6 +19,28 @@ class TiledMap(private val tiledMapData: TiledMapData, private val tiledMapFile:
 
     private val tileMapTileset: TiledMapTileset by lazy {
         TiledMapTileset(tilesetResource)
+    }
+
+    fun allTiles(): Sequence<Pair<Position, List<TilesetTile?>>> {
+        val tileLayers = tiledMapData.layers
+            .filterIsInstance<TiledTileLayer>()
+        val maxWidth = tileLayers.maxOf { it.width }
+        val maxHeight = tileLayers.maxOf { it.height }
+        val data = ArrayList<TilesetTile?>(tileLayers.size).apply {
+            repeat(tileLayers.size) {
+                add(null)
+            }
+        }
+        return sequence<Pair<Position, List<TilesetTile?>>> {
+            for (x in 0 until maxWidth) {
+                for (y in 0 until maxHeight) {
+                    for (idx in tileLayers.indices) {
+                        data[idx] = tileLayers[idx].getTileAt(x, y)?.let { with(tileMapTileset) { it.toTilesetTile() } }
+                    }
+                    yield(Position.create(x, y) to data)
+                }
+            }
+        }
     }
 
     fun toLayerList(): List<Layer> =

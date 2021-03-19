@@ -70,6 +70,13 @@ class TiledTileLayer(
         return layer
     }
 
+    fun getTileAt(x: Int, y: Int): Int? =
+        if (x !in 0 until width || y !in 0 until height) {
+            null
+        } else {
+            data[y * height + x]
+        }
+
     internal companion object {
         @Suppress("UNCHECKED_CAST")
         fun fromMap(map: Map<String, Any>): TiledTileLayer {

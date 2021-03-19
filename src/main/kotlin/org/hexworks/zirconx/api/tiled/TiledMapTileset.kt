@@ -54,6 +54,17 @@ class TiledMapTileset(private val tilesetResource: TilesetResource) : Tileset<Gr
         throw NoSuchElementException()
     }
 
+    fun Int.toTilesetTile(): TilesetTile? {
+        if (this == 0) return null
+        for (idx in originalTilesetsByRange.indices) {
+            val (range, tileset: TiledTilesetFile) = originalTilesetsByRange[idx]
+            if (this in range) {
+                return tileset.tiles[this - range.first]
+            }
+        }
+        throw NoSuchElementException()
+    }
+
     override fun drawTile(tile: Tile, surface: Graphics2D, position: Position) {
         require(tile is GraphicalTile) { "Tile was unexpected type: $tile" }
         if (tile.name == "0") {

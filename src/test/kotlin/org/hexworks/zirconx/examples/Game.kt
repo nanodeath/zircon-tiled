@@ -56,6 +56,12 @@ fun main(args: Array<String>) {
     println("Player position: $playerPosition")
     tiled.getObjectLayer("Creatures")
 
+    val blocked = tiled.allTiles()
+        .mapNotNull { (pos, stack) ->
+            pos.takeIf { stack.any { it?.properties?.get("isSolid") == true } }
+        }
+        .toSet()
+
     screen.handleKeyboardEvents(KeyboardEventType.KEY_PRESSED) { event: KeyboardEvent, phase: UIEventPhase ->
         val deltaPosition = when (event.code) {
             KeyCode.RIGHT -> Position.create(1, 0)
@@ -65,7 +71,10 @@ fun main(args: Array<String>) {
             else -> return@handleKeyboardEvents UIEventResponse.pass()
         }
         zirconCreatureLayer.clear()
-        player.position += deltaPosition
+        val newPosition = player.position + deltaPosition
+        if (newPosition !in blocked) {
+            player.position = newPosition
+        }
         player.draw(zirconCreatureLayer)
 
         UIEventResponse.processed()
