@@ -10,10 +10,10 @@ import org.hexworks.zirconx.api.tiled.numberToDouble
 
 sealed class TiledLayer {
     internal companion object {
-        fun fromMap(map: Map<String, Any>): TiledLayer =
+        fun fromMap(map: Map<String, Any>, scale: Size): TiledLayer =
             when (val type = map["type"]) {
                 "tilelayer" -> TiledTileLayer.fromMap(map)
-                "objectgroup" -> TiledObjectLayer.fromMap(map)
+                "objectgroup" -> TiledObjectLayer.fromMap(map, scale)
                 else -> TODO("layer type $type is not yet supported")
             }
     }
@@ -24,12 +24,17 @@ class TiledObjectLayer(
     val name: String,
     val objects: List<TiledObject>
 ) : TiledLayer() {
+    fun byName(name: String): TiledObject? = objects.firstOrNull { it.name == name }
+
+    fun allByName(name: String): List<TiledObject> = objects.filter { it.name == name }
+    fun allByNameSeq(name: String): Sequence<TiledObject> = objects.asSequence().filter { it.name == name }
+
     internal companion object {
         @Suppress("UNCHECKED_CAST")
-        fun fromMap(map: Map<String, Any>) = TiledObjectLayer(
+        fun fromMap(map: Map<String, Any>, scale: Size) = TiledObjectLayer(
             map["draworder"] as String,
             map["name"] as String,
-            (map["objects"] as List<Map<String, Any>>).map { TiledObject.fromMap(it) }
+            (map["objects"] as List<Map<String, Any>>).map { TiledObject.fromMap(it, scale) }
         )
     }
 }
@@ -51,9 +56,11 @@ class TiledTileLayer(
 
         for (y in 0 until height) {
             for (x in 0 until width) {
+                val idx = data[y * height + x]
+                if (idx < 1) continue
                 layer.draw(
                     tile = TileBuilder.newBuilder()
-                        .withName(data[y * height + x].toString())
+                        .withName(idx.toString())
                         .withTileset(tileset)
                         .buildGraphicalTile(),
                     drawPosition = Position.create(x, y)

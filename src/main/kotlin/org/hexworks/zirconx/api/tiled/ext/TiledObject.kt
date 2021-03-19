@@ -1,31 +1,35 @@
 package org.hexworks.zirconx.api.tiled.ext
 
+import org.hexworks.zircon.api.data.Position
+import org.hexworks.zircon.api.data.Size
 import org.hexworks.zirconx.api.tiled.numberToDouble
 import org.hexworks.zirconx.api.tiled.numberToLong
 
 sealed class TiledObject {
-    open class BaseObject : TiledObject() {
-        var id: Int = 0
-            internal set
-        var name: String = ""
-            internal set
-        var x: Double = 0.0
-            internal set
-        var y: Double = 0.0
-            internal set
-        var width: Double = 0.0
-            internal set
-        var height: Double = 0.0
-            internal set
-        var rotation: Double = 0.0
-            internal set
-        var template: String? = null
-            internal set
-        var type: String = ""
-            internal set
-        var visible: Boolean = true
-            internal set
-    }
+    var id: Int = 0
+        internal set
+    var name: String = ""
+        internal set
+    var x: Double = 0.0
+        internal set
+    var y: Double = 0.0
+        internal set
+    var width: Double = 0.0
+        internal set
+    var height: Double = 0.0
+        internal set
+    var rotation: Double = 0.0
+        internal set
+    var template: String? = null
+        internal set
+    var type: String = ""
+        internal set
+    var visible: Boolean = true
+        internal set
+
+
+
+    open class BaseObject : TiledObject()
 
     class Tile internal constructor(rawGid: Long) : BaseObject() {
         val gid: Int = (rawGid and FLIPPED_FLAGS.inv()).toInt()
@@ -49,7 +53,9 @@ sealed class TiledObject {
         }
     }
 
-    class Point internal constructor() : BaseObject()
+    class Point internal constructor() : BaseObject() {
+        override fun toString() = "Point(x=$x,y=$y,super=${super.toString()})"
+    }
 
     class Text internal constructor(val text: String, val attributes: Map<String, Any>) : BaseObject() {
         internal companion object {
@@ -67,20 +73,20 @@ sealed class TiledObject {
     }
 
     internal companion object {
-        fun fromMap(map: Map<String, Any>): TiledObject {
+        fun fromMap(map: Map<String, Any>, scale: Size): TiledObject {
             return (when {
                 map["point"] == true -> Point()
                 map["text"] != null -> Text.fromMap(map)
                 map["gid"] != null -> Tile.fromMap(map)
                 else -> BaseObject()
-            }).also { it.populateFromMap(map) }
+            }).also { it.populateFromMap(map, scale) }
         }
 
-        private fun BaseObject.populateFromMap(map: Map<String, Any>) {
+        private fun BaseObject.populateFromMap(map: Map<String, Any>, scale: Size) {
             id = map["id"] as Int
             name = map["name"] as String
-            x = map["x"]?.numberToDouble()!!
-            y = map["y"]?.numberToDouble()!!
+            x = map["x"]?.numberToDouble()!! / scale.width
+            y = map["y"]?.numberToDouble()!! / scale.height
             width = map["width"]?.numberToDouble()!!
             height = map["height"]?.numberToDouble()!!
             rotation = map["rotation"]?.numberToDouble()!!
@@ -89,4 +95,7 @@ sealed class TiledObject {
             visible = map["visible"] as Boolean
         }
     }
+
+    override fun toString(): String =
+        "TiledObject(id=$id, name='$name', x=$x, y=$y, width=$width, height=$height, rotation=$rotation, template=$template, type='$type', visible=$visible)"
 }
