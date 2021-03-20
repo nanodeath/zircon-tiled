@@ -67,7 +67,7 @@ class TilesetTile(
                 (map["objectgroup"] as Map<String, Any>?)?.let { TiledObjectLayer.fromMap(it, scale) },
                 map["probability"]?.numberToDouble(),
                 (map["properties"] as List<Map<String, Any>>?).let { parseProperties(it) },
-                (map["terrain"] as List<Int>?)?.let { it.toIntArray() },
+                (map["terrain"] as List<Int>?)?.toIntArray(),
                 map["type"] as String?
             )
         }

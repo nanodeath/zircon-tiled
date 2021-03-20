@@ -7,6 +7,7 @@ import org.hexworks.zircon.api.data.Tile
 import org.hexworks.zircon.api.graphics.Layer
 import org.hexworks.zircon.internal.resource.TilesetSourceType
 import org.hexworks.zirconx.api.tiled.ext.*
+import org.hexworks.zirconx.internal.tiled.logDuration
 import java.io.File
 
 /**
@@ -126,8 +127,9 @@ class TiledMap(tiledMapData: TiledMapData, tiledMapFile: File) {
          * Loads the given Tiled map and associated tilesets and images.
          */
         fun load(file: File): TiledMap {
-            val tiledMapFile = deserializeJson(file).let { TiledMapData.fromMap(it) }
-            return TiledMap(tiledMapFile, file)
+            val deserializeJson = logDuration("load.deserializeJson") { deserializeJson(file) }
+            val tiledMapFile = logDuration("load.TiledMapData") { TiledMapData.fromMap(deserializeJson) }
+            return logDuration("load.TiledMap") { TiledMap(tiledMapFile, file) }
         }
     }
 }

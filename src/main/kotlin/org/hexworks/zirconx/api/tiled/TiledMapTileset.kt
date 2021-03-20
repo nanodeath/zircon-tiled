@@ -7,6 +7,7 @@ import org.hexworks.zircon.api.data.Tile
 import org.hexworks.zircon.api.resource.TilesetResource
 import org.hexworks.zircon.api.tileset.Tileset
 import org.hexworks.zirconx.api.tiled.ext.*
+import org.hexworks.zirconx.internal.tiled.logDuration
 import java.awt.Graphics2D
 import java.io.File
 
@@ -20,23 +21,35 @@ class TiledMapTileset(private val tilesetResource: TilesetResource) : Tileset<Gr
 
     init {
         tilesetResource as TiledTilesetResource
-        val tilesetData: Map<String, TiledTilesetFile> = tilesetResource.tiledMapData.tilesets.map { tiledTileSet: TiledTileSet ->
-            tiledTileSet.source to deserializeJson(File(tilesetResource.path).resolveSibling(tiledTileSet.source))
-                .let { TiledTilesetFile.fromMap(it) }
+        logDuration("TiledMapTileset.constructor") {
+            val tilesetData: Map<String, TiledTilesetFile> = logDuration("TiledMapTileset.tilesetData") {
+                tilesetResource.tiledMapData.tilesets.map { tiledTileSet: TiledTileSet ->
+                    tiledTileSet.source to deserializeJson(File(tilesetResource.path).resolveSibling(tiledTileSet.source))
+                        .let { TiledTilesetFile.fromMap(it) }
+                }
+                    .toMap()
+            }
+            originalTilesetsByRange = logDuration("TiledMapTileset.originalTilesetsByRange") {
+                tilesetResource.tiledMapData.tilesets
+                    .map { tiledTileSet: TiledTileSet ->
+                        val tiledTilesetFile = tilesetData[tiledTileSet.source]!!
+                        val range = tiledTileSet.firstGid until (tiledTileSet.firstGid + tiledTilesetFile.tilecount)
+                        range to tiledTilesetFile
+                    }
+            }
+            tilesets = logDuration("TiledMapTileset.tilesets") {
+                tilesetResource.tiledMapData.tilesets
+                    .map { tiledTileSet: TiledTileSet ->
+                        val tiledTilesetFile = tilesetData[tiledTileSet.source]!!
+                        val range = tiledTileSet.firstGid until (tiledTileSet.firstGid + tiledTilesetFile.tilecount)
+                        range to Java2DTiledTileset.from(
+                            tiledTilesetFile,
+                            tiledTileSet.firstGid,
+                            File(tilesetResource.path)
+                        )
+                    }
+            }
         }
-            .toMap()
-        originalTilesetsByRange = tilesetResource.tiledMapData.tilesets
-            .map { tiledTileSet: TiledTileSet ->
-                val tiledTilesetFile = tilesetData[tiledTileSet.source]!!
-                val range = tiledTileSet.firstGid until (tiledTileSet.firstGid + tiledTilesetFile.tilecount)
-                range to tiledTilesetFile
-            }
-        tilesets = tilesetResource.tiledMapData.tilesets
-            .map { tiledTileSet: TiledTileSet ->
-                val tiledTilesetFile = tilesetData[tiledTileSet.source]!!
-                val range = tiledTileSet.firstGid until (tiledTileSet.firstGid + tiledTilesetFile.tilecount)
-                range to Java2DTiledTileset.from(tiledTilesetFile, tiledTileSet.firstGid, File(tilesetResource.path))
-            }
     }
 
     fun findTile(predicate: (TilesetTile) -> Boolean): Pair<GlobalId, TilesetTile> {

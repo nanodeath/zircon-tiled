@@ -5,6 +5,7 @@ import org.hexworks.zircon.api.data.GraphicalTile
 import org.hexworks.zircon.api.data.Position
 import org.hexworks.zircon.api.data.Tile
 import org.hexworks.zirconx.api.tiled.ext.TiledTilesetFile
+import org.hexworks.zirconx.internal.tiled.logDuration
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.io.File
@@ -16,12 +17,15 @@ class Java2DTiledTileset(
     private val indexOffset: Int,
     private val tileWidth: Int,
     private val tileHeight: Int,
-    private val columns: Int
+    private val columns: Int,
+    name: String
 ) {
-    private val image = ImageIO.read(image())
-    private val textureCache = Caffeine.newBuilder()
-        .maximumSize(1024L)
-        .build<Int, BufferedImage>()
+    private val image = logDuration("Java2DTiledTileset.image($name)") { ImageIO.read(image()) }
+    private val textureCache = logDuration("Java2DTiledTileset.Caffeine") {
+        Caffeine.newBuilder()
+            .maximumSize(1024L)
+            .build<Int, BufferedImage>()
+    }
 
     fun drawTile(tile: Tile, surface: Graphics2D, position: Position) {
         val idx = (tile as GraphicalTile).name.toInt() - indexOffset
@@ -37,8 +41,18 @@ class Java2DTiledTileset(
 
     companion object {
         fun from(data: TiledTilesetFile, offset: Int, tileMapFile: File): Java2DTiledTileset {
-            val image = { tileMapFile.parentFile.resolve(data.image.source).inputStream() }
-            return Java2DTiledTileset(image, offset, data.tilewidth, data.tileheight, data.columns)
+            val imageFile = tileMapFile.parentFile.resolve(data.image.source)
+            val image = { imageFile.inputStream() }
+            return logDuration("Java2DTiledTileset.constructor(${imageFile.name})") {
+                Java2DTiledTileset(
+                    image,
+                    offset,
+                    data.tilewidth,
+                    data.tileheight,
+                    data.columns,
+                    imageFile.name
+                )
+            }
         }
     }
 }
