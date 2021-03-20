@@ -1,79 +1,73 @@
 package org.hexworks.zirconx.api.tiled
 
+import org.hexworks.zircon.api.builder.data.TileBuilder
+import org.hexworks.zircon.api.builder.graphics.LayerBuilder
 import org.hexworks.zircon.api.data.GraphicalTile
-import org.hexworks.zircon.api.data.Position
 import org.hexworks.zircon.api.data.Tile
 import org.hexworks.zircon.api.graphics.Layer
 import org.hexworks.zircon.internal.resource.TilesetSourceType
 import org.hexworks.zirconx.api.tiled.ext.*
 import java.io.File
 
-class TiledMap(private val tiledMapData: TiledMapData, private val tiledMapFile: File) {
-    val tilesetResource: TiledTilesetResource by lazy {
-        TiledTilesetResource(
-            TilesetSourceType.FILESYSTEM,
-            tiledMapData,
-            tiledMapFile.path
+class TiledMap(tiledMapData: TiledMapData, tiledMapFile: File) {
+    private val actualTileLayers = tiledMapData.layers.filterIsInstance<TiledTileLayer>()
+    private val actualObjectLayers = tiledMapData.layers.filterIsInstance<TiledObjectLayer>()
+
+    init {
+        require(actualTileLayers.isNotEmpty()) { "At least one tile layer must be present" }
+    }
+
+    private val zirconTilesetResource = TiledTilesetResource(
+        TilesetSourceType.FILESYSTEM,
+        tiledMapData,
+        tiledMapFile.path
+    )
+
+    private val tileMapTileset = TiledMapTileset(zirconTilesetResource)
+    val tileLayers = TiledTileLayers(this, actualTileLayers)
+    val objectLayers = TiledObjectLayers(actualObjectLayers)
+    val tilesets = TiledTilesets(tileMapTileset)
+
+    fun createZirconTile(id: GlobalId, builder: (TileBuilder) -> TileBuilder = { it }): GraphicalTile =
+        Tile.newBuilder()
+            .withName(id.value.toString())
+            .withTileset(zirconTilesetResource)
+            .let(builder)
+            .buildGraphicalTile()
+
+    fun initializeZirconLayer(guessSize: Boolean = true): LayerBuilder =
+        updateZirconLayer(
+            LayerBuilder.newBuilder(),
+            guessSize = guessSize
         )
-    }
 
-    private val tileMapTileset: TiledMapTileset by lazy {
-        TiledMapTileset(tilesetResource)
-    }
-
-    fun allTiles(): Sequence<Pair<Position, List<TilesetTile?>>> {
-        val tileLayers = tiledMapData.layers
-            .filterIsInstance<TiledTileLayer>()
-        val maxWidth = tileLayers.maxOf { it.width }
-        val maxHeight = tileLayers.maxOf { it.height }
-        val data = ArrayList<TilesetTile?>(tileLayers.size).apply {
-            repeat(tileLayers.size) {
-                add(null)
+    fun updateZirconLayer(
+        builder: LayerBuilder,
+        guessSize: Boolean = true
+    ): LayerBuilder =
+        builder.withTileset(zirconTilesetResource).apply {
+            if (guessSize) {
+                withSize(actualTileLayers.maxOf { it.width }, actualTileLayers.maxOf { it.height })
             }
         }
-        return sequence<Pair<Position, List<TilesetTile?>>> {
-            for (x in 0 until maxWidth) {
-                for (y in 0 until maxHeight) {
-                    for (idx in tileLayers.indices) {
-                        data[idx] = tileLayers[idx].getTileAt(x, y)?.let { with(tileMapTileset) { it.toTilesetTile() } }
-                    }
-                    yield(Position.create(x, y) to data)
-                }
-            }
-        }
+
+    fun GlobalId.toLocalId(): LocalId {
+        val (range, _) = tileMapTileset.lookupTileset(this)
+        return toLocalId(range.first)
     }
 
-    fun toLayerList(): List<Layer> =
-        tiledMapData.layers
-            .filterIsInstance<TiledTileLayer>()
-            .map { it.toLayer(tilesetResource) }
+    internal fun toZirconLayers(layers: List<TiledTileLayer>): List<Layer> =
+        layers.map { it.toLayer(zirconTilesetResource) }
 
-    fun getObjectLayer(name: String): TiledObjectLayer = objectLayers.first { it.name == name }
-
-    val objectLayers get() = tiledMapData.layers.filterIsInstance<TiledObjectLayer>()
-
-    fun findTileBy(predicate: (TilesetTile) -> Boolean): GraphicalTile {
-        val (tileIdx, _) = tileMapTileset.findTile(predicate)
-        return Tile.createGraphicTile(name = tileIdx.toString(), tags = emptySet(), tileset = tilesetResource)
+    fun lookupTile(id: GlobalId): TilesetTile {
+        val (range, tileset: TiledTilesetFile) = tileMapTileset.lookupTileset(id)
+        return tileset.tiles[id.toLocalId(range.first).value].orEmpty()
     }
 
     companion object {
-        fun loadTiledFile(file: File): TiledMap {
+        fun load(file: File): TiledMap {
             val tiledMapFile = deserializeJson(file).let { TiledMapData.fromMap(it) }
             return TiledMap(tiledMapFile, file)
         }
     }
 }
-
-fun TiledMap.getObjectByName(name: String, layerName: String? = null): TiledObject? =
-    getAllObjectsByNameSeq(name, layerName).firstOrNull()
-
-fun TiledMap.getAllObjectsByName(name: String, layerName: String? = null): List<TiledObject> =
-    getAllObjectsByNameSeq(name, layerName).toList()
-
-fun TiledMap.getAllObjectsByNameSeq(name: String, layerName: String? = null): Sequence<TiledObject> =
-    if (layerName == null) {
-        objectLayers.asSequence().flatMap { it.allByNameSeq(name) }
-    } else {
-        getObjectLayer(layerName).allByNameSeq(name)
-    }

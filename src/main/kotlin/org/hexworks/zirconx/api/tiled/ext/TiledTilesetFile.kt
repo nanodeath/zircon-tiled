@@ -4,6 +4,7 @@ import org.hexworks.zircon.api.data.Size
 import org.hexworks.zirconx.api.tiled.numberToDouble
 
 class TiledTilesetFile(
+    val name: String,
     val tilewidth: Int,
     val tileheight: Int,
     val tilecount: Int,
@@ -26,6 +27,7 @@ class TiledTilesetFile(
             val tileWidth = map["tilewidth"] as Int
             val tileHeight = map["tileheight"] as Int
             return TiledTilesetFile(
+                map["name"] as String,
                 tileWidth,
                 tileHeight,
                 map["tilecount"] as Int,
@@ -53,6 +55,9 @@ class TilesetTile(
 ) {
 
     companion object {
+        val empty = TilesetTile(0, null, null, null, null, null, emptyMap(), null, null)
+
+        @Suppress("UNCHECKED_CAST")
         internal fun fromMap(map: Map<String, Any>, scale: Size): TilesetTile {
             return TilesetTile(
                 map["id"] as Int,
@@ -77,3 +82,6 @@ class TilesetTile(
         }
     }
 }
+
+@Suppress("NOTHING_TO_INLINE")
+internal fun TilesetTile?.orEmpty(): TilesetTile = this ?: TilesetTile.empty

@@ -12,7 +12,7 @@ import org.hexworks.zirconx.api.tiled.ext.TiledTileSet
 /**
  * This is a [TilesetResource] that describes the [TiledMap] itself, _not_ individual [TiledTileSets][TiledTileSet]
  */
-class TiledTilesetResource(
+class TiledTilesetResource internal constructor(
     override val tilesetSourceType: TilesetSourceType,
     internal val tiledMapData: TiledMapData,
     override val path: String // map of the Tiled map file

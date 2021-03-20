@@ -2,15 +2,11 @@ package org.hexworks.zirconx.examples
 
 import org.hexworks.zircon.api.SwingApplications
 import org.hexworks.zircon.api.application.AppConfig
-import org.hexworks.zircon.api.builder.graphics.LayerBuilder
 import org.hexworks.zircon.api.data.Position
-import org.hexworks.zircon.api.data.Size
 import org.hexworks.zircon.api.screen.Screen
 import org.hexworks.zircon.api.uievent.*
-import org.hexworks.zircon.internal.graphics.FastTileGraphics
 import org.hexworks.zirconx.api.tiled.TiledMap
 import org.hexworks.zirconx.api.tiled.ext.TiledObject
-import org.hexworks.zirconx.api.tiled.getObjectByName
 import java.io.File
 
 fun main(args: Array<String>) {
@@ -21,14 +17,14 @@ fun main(args: Array<String>) {
     )
     val screen: Screen = Screen.create(tileGrid)
     val pathToMap = requireNotNull(args.firstOrNull()) { "No Tiled map provided" }
-    val tiled: TiledMap = TiledMap.loadTiledFile(File(pathToMap))
+    val tiled: TiledMap = TiledMap.load(File(pathToMap))
 
-    tiled.toLayerList().forEach {
+    tiled.tileLayers.toZirconLayers().forEach {
         screen.addLayer(it)
     }
     tiled.objectLayers.forEach { layer ->
         println("Object layer: ${layer.name}")
-        for (obj in layer.objects) {
+        for (obj in layer) {
             when (obj) {
                 is TiledObject.Point -> println(" - point ${obj.name} @ ${obj.x},${obj.y}")
                 is TiledObject.Text -> println(" - text ${obj.name} \"${obj.text}\" @ ${obj.x},${obj.y} (attributes: ${obj.attributes})")
@@ -37,28 +33,22 @@ fun main(args: Array<String>) {
         }
     }
 
-    val size = Size.create(tiled.toLayerList().first().width, tiled.toLayerList().first().height)
-    val tg = FastTileGraphics(size, tiled.tilesetResource)
-
-    val playerPosition = tiled.getObjectByName("Player", layerName = "Creatures")?.let { obj ->
+    val playerPosition = tiled.objectLayers["Creatures"]["Player"].let { obj ->
         Position.create(obj.x.toInt(), obj.y.toInt())
-    } ?: error("No Player point found?")
-    val player = Player(tiled.findTileBy { it.type == "Player" }, playerPosition)
-    player.draw(tg)
+    }
+    val playerTile = tiled.tilesets.queryTileId { it.type == "Player" }
+    val player = Player(tiled.createZirconTile(playerTile), playerPosition)
+
     screen.display()
-    val zirconCreatureLayer = LayerBuilder.newBuilder()
-        .withSize(size)
-        .withTileGraphics(tg)
-        .withTileset(tiled.tilesetResource)
-        .build()
+    val zirconCreatureLayer = tiled.initializeZirconLayer().build()
         .also { screen.addLayer(it) }
+    player.draw(zirconCreatureLayer)
 
     println("Player position: $playerPosition")
-    tiled.getObjectLayer("Creatures")
 
-    val blocked = tiled.allTiles()
+    val blocked = tiled.tileLayers.getAllStacks()
         .mapNotNull { (pos, stack) ->
-            pos.takeIf { stack.any { it?.properties?.get("isSolid") == true } }
+            pos.takeIf { stack.any { tiled.tilesets.toTilesetTile(it).properties["isSolid"] == true } }
         }
         .toSet()
 

@@ -1,6 +1,6 @@
 package org.hexworks.zirconx.api.tiled
 
-fun Any.numberToDouble(): Double =
+internal fun Any.numberToDouble(): Double =
     when (this) {
         is Double -> this
         is Int -> toDouble()
@@ -8,7 +8,7 @@ fun Any.numberToDouble(): Double =
         else -> throw IllegalArgumentException("Not a double: $this)")
     }
 
-fun Any.numberToLong(): Long =
+internal fun Any.numberToLong(): Long =
     when (this) {
         is Long -> this
         is Int -> toLong()

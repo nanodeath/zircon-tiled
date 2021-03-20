@@ -6,10 +6,7 @@ import org.hexworks.zircon.api.data.Position
 import org.hexworks.zircon.api.data.Tile
 import org.hexworks.zircon.api.resource.TilesetResource
 import org.hexworks.zircon.api.tileset.Tileset
-import org.hexworks.zirconx.api.tiled.ext.TiledObject
-import org.hexworks.zirconx.api.tiled.ext.TiledTileSet
-import org.hexworks.zirconx.api.tiled.ext.TiledTilesetFile
-import org.hexworks.zirconx.api.tiled.ext.TilesetTile
+import org.hexworks.zirconx.api.tiled.ext.*
 import java.awt.Graphics2D
 import java.io.File
 
@@ -42,24 +39,39 @@ class TiledMapTileset(private val tilesetResource: TilesetResource) : Tileset<Gr
             }
     }
 
-    fun findTile(predicate: (TilesetTile) -> Boolean): Pair<Int, TilesetTile> {
+    fun findTile(predicate: (TilesetTile) -> Boolean): Pair<GlobalId, TilesetTile> {
         for (idx in originalTilesetsByRange.indices) {
             val (range, tileset: TiledTilesetFile) = originalTilesetsByRange[idx]
             for ((tileIdx, tile) in tileset.tiles) {
                 if (predicate(tile)) {
-                    return (range.first + tileIdx) to tile
+                    return LocalId(tileIdx).toGlobalId(range.first) to tile
                 }
             }
         }
         throw NoSuchElementException()
     }
 
-    fun Int.toTilesetTile(): TilesetTile? {
-        if (this == 0) return null
+    fun lookupTile(id: GlobalId): TilesetTile {
+        for ((range, file) in originalTilesetsByRange) {
+            if (id.value in range) {
+                return file.tiles[id.toLocalId(range.first).value].orEmpty()
+            }
+        }
+        throw NoSuchElementException()
+    }
+
+    fun byName(name: String): Pair<IntRange, TiledTilesetFile> =
+        originalTilesetsByRange.first { (_, file) -> file.name == name }
+
+    fun lookupTileset(id: GlobalId): Pair<IntRange, TiledTilesetFile> =
+        originalTilesetsByRange.first { (range, _) -> id.value in range }
+
+    fun GlobalId.toTilesetTile(): TilesetTile {
+        if (this.value == 0) return TilesetTile.empty
         for (idx in originalTilesetsByRange.indices) {
             val (range, tileset: TiledTilesetFile) = originalTilesetsByRange[idx]
-            if (this in range) {
-                return tileset.tiles[this - range.first]
+            if (this.value in range) {
+                return tileset.tiles[this.toLocalId(range.first).value].orEmpty()
             }
         }
         throw NoSuchElementException()

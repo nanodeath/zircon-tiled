@@ -40,6 +40,7 @@ class TiledObjectLayer(
 }
 
 class TiledTileLayer(
+    val name: String,
     val data: List<Int>,
     val width: Int,
     val height: Int,
@@ -81,6 +82,7 @@ class TiledTileLayer(
         @Suppress("UNCHECKED_CAST")
         fun fromMap(map: Map<String, Any>): TiledTileLayer {
             return TiledTileLayer(
+                map["name"] as String,
                 map["data"] as List<Int>,
                 map["width"] as Int,
                 map["height"] as Int,
