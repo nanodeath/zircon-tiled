@@ -9,11 +9,10 @@ import org.hexworks.zirconx.internal.tiled.logDurationNs
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.io.File
-import java.io.InputStream
 import javax.imageio.ImageIO
 
 class Java2DTiledTileset internal constructor(
-    image: () -> InputStream,
+    image: File,
     private val indexOffset: Int,
     private val tileWidth: Int,
     private val tileHeight: Int,
@@ -21,7 +20,7 @@ class Java2DTiledTileset internal constructor(
     tileCount: Int,
     name: String
 ) {
-    private val image = logDuration("Java2DTiledTileset.image($name)") { ImageIO.read(image()) }
+    private val image = logDuration("Java2DTiledTileset.image($name)") { ImageIO.read(image) }
 
     private val subimageLoader: SubimageLoader = SimpleArrayCache(
         tileCount,
@@ -40,10 +39,9 @@ class Java2DTiledTileset internal constructor(
     companion object {
         internal fun from(data: TiledTilesetFile, offset: Int, tileMapFile: File): Java2DTiledTileset {
             val imageFile = tileMapFile.parentFile.resolve(data.image.source)
-            val image = { imageFile.inputStream() }
             return logDuration("Java2DTiledTileset.constructor(${imageFile.name})") {
                 Java2DTiledTileset(
-                    image,
+                    imageFile,
                     offset,
                     data.tilewidth,
                     data.tileheight,
