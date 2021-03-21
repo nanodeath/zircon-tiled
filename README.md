@@ -36,8 +36,17 @@ I _think_ we can do.~~ Switched over to naive Jackson object deserialization, wh
 
 ## License
 
-See `LICENSE`.
+See [`LICENSE`](LICENSE).
 
 ## Notes
 
 Originally branched from [zircon.skeleton.kotlin](https://github.com/Hexworks/zircon.skeleton.kotlin).
+
+### Internal
+#### Publishing
+
+Publish using
+```shell
+gradlew publish --no-daemon --no-parallel
+gradlew closeAndReleaseRepository
+```

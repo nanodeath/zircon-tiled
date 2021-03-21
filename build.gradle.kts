@@ -7,10 +7,14 @@ val junit_version: String by project
 val mockito_version: String by project
 val assertj_version: String by project
 val jackson_version: String by project
+val mavenCentralRepositoryUsername: String by project
+val mavenCentralRepositoryPassword: String by project
 
 plugins {
     kotlin("jvm") version "1.4.31"
+    id("org.jetbrains.dokka") version "1.4.30"
     id("com.github.johnrengelman.shadow") version "5.2.0"
+    id("com.vanniktech.maven.publish") version "0.13.0"
 }
 
 repositories {
@@ -26,9 +30,9 @@ java {
 
 dependencies {
     implementation("org.slf4j:slf4j-api:$slf4j_version")
-    implementation("org.slf4j:slf4j-simple:$slf4j_version")
+    testImplementation("org.slf4j:slf4j-simple:$slf4j_version")
 
-    implementation("org.hexworks.zircon:zircon.core-jvm:$zircon_version")
+    api("org.hexworks.zircon:zircon.core-jvm:$zircon_version")
     implementation("org.hexworks.zircon:zircon.jvm.swing:$zircon_version")
 
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson_version")
@@ -70,4 +74,33 @@ compileKotlin.kotlinOptions {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+// Based on https://github.com/vanniktech/gradle-maven-publish-plugin/blob/master/README.md
+// and https://github.com/vanniktech/gradle-maven-publish-plugin/issues/206#issuecomment-791152220
+publishing {
+    repositories {
+        withType<MavenArtifactRepository> {
+            if (name == "local") return@withType
+
+            System.err.println("Version: $version")
+            val releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            val snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            val url = if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl
+            this.url = uri(url.also { System.err.println("Using url: $url") })
+
+            credentials {
+                username = mavenCentralRepositoryUsername
+                password = mavenCentralRepositoryPassword
+            }
+        }
+    }
+}
+
+mavenPublish {
+    nexus {
+        baseUrl = "https://s01.oss.sonatype.org/service/local/"
+        repositoryUsername = mavenCentralRepositoryUsername
+        repositoryPassword = mavenCentralRepositoryPassword
+    }
 }
