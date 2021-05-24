@@ -9,6 +9,7 @@ import org.hexworks.zirconx.internal.tiled.logDurationNs
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.io.File
+import java.io.IOException
 import javax.imageio.ImageIO
 
 class Java2DTiledTileset internal constructor(
@@ -20,7 +21,13 @@ class Java2DTiledTileset internal constructor(
     tileCount: Int,
     name: String
 ) {
-    private val image = logDuration("Java2DTiledTileset.image($name)") { ImageIO.read(image) }
+    private val image = logDuration("Java2DTiledTileset.image($name)") {
+        try {
+            ImageIO.read(image)
+        } catch (e: IOException) {
+            throw IOException("Failed to load $image", e)
+        }
+    }
 
     private val subimageLoader: SubimageLoader = SimpleArrayCache(
         tileCount,

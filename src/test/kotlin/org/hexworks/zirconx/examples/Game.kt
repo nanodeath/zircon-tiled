@@ -4,15 +4,19 @@ import org.hexworks.zircon.api.SwingApplications
 import org.hexworks.zircon.api.application.AppConfig
 import org.hexworks.zircon.api.data.Position
 import org.hexworks.zircon.api.screen.Screen
+import org.hexworks.zircon.api.tileset.TilesetLoader
 import org.hexworks.zircon.api.uievent.*
 import org.hexworks.zirconx.api.tiled.TiledMap
+import org.hexworks.zirconx.api.tiled.TiledSwingGraphicTilesetLoader
 import org.hexworks.zirconx.api.tiled.ext.TiledObject
+import java.awt.Graphics2D
 import java.io.File
 
 fun main(args: Array<String>) {
     val tileGrid = SwingApplications.startTileGrid(
         AppConfig.newBuilder()
             .withDebugMode(true)
+            .withTilesetLoaders(TiledSwingGraphicTilesetLoader())
             .build()
     )
     val screen: Screen = Screen.create(tileGrid)
